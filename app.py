@@ -8,6 +8,12 @@ import io
 from datetime import datetime
 import plotly.graph_objects as go
 import plotly.express as px
+import gdown
+import os
+from tensorflow.keras.models import load_model # type: ignore
+
+file_id = "1EXtHrivj3G96mjfoVsPpslxfoHeQbARA"
+
 
 # Set page configuration
 st.set_page_config(
@@ -192,14 +198,42 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Google Drive file IDs
+MODEL_FILE_ID = "1EXtHrivj3G96mjfoVsPpslxfoHeQbARA"
+CLASS_INDICES_FILE_ID = "1jUfqkgpQRlmeriFe5vMtbcSfLnLK6dOr"
+
+# File paths
+MODEL_PATH = "potato_disease_model.h5"
+CLASS_INDICES_PATH = "class_indices.json"
+
+def download_file(file_id, output_path):
+    """Download a file from Google Drive if not already present"""
+    if not os.path.exists(output_path):
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, output_path, quiet=False)
+
 @st.cache_resource
 def load_model():
-    """Load the trained model and class indices"""
-    model = tf.keras.models.load_model('potato_disease_model.h5')
-    with open('class_indices.json', 'r') as f:
+    """Download and load the trained model & class indices"""
+    # Download model & class indices if not available
+    download_file(MODEL_FILE_ID, MODEL_PATH)
+    download_file(CLASS_INDICES_FILE_ID, CLASS_INDICES_PATH)
+    
+    # Load model
+    model = tf.keras.models.load_model(MODEL_PATH)
+    
+    # Load class indices
+    with open(CLASS_INDICES_PATH, 'r') as f:
         class_indices = json.load(f)
+    
+    # Reverse mapping for labels
     class_labels = {v: k for k, v in class_indices.items()}
+    
     return model, class_labels
+
+# Load the model
+model, class_labels = load_model()
+st.write("✅ Model & class labels loaded successfully!")
 
 def preprocess_image(image):
     """Preprocess the image for model prediction"""
